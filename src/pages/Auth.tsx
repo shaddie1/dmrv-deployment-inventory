@@ -22,7 +22,7 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: "https://dmrv-deployment-inventory.vercel.app/reset-password",
     });
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -49,7 +49,7 @@ const Auth = () => {
         password,
         options: {
           data: { full_name: fullName },
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: "https://dmrv-deployment-inventory.vercel.app",
         },
       });
       if (error) {
