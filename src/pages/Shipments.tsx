@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { BulkShipmentImport } from "@/components/BulkShipmentImport";
+import { BulkPriceCorrection } from "@/components/BulkPriceCorrection";
 
 type Shipment = Tables<"shipments"> & {
   items: { name: string; category: string } | null;
@@ -369,6 +370,7 @@ export default function ShipmentsPage() {
         </div>
         {canCreate && (
           <div className="flex items-center gap-2">
+            <BulkPriceCorrection onCorrectionComplete={fetchData} />
             <BulkShipmentImport items={items} projects={projects} onImportComplete={fetchData} />
             <Button size="sm" onClick={() => { resetForm(); setCreateOpen(true); }}>
               <Plus className="mr-1 h-4 w-4" /> New Shipment
