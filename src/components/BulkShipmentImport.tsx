@@ -1,11 +1,15 @@
-import { useState, useRef } from "react";
+import { useState, useRef, type ChangeEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useCurrency } from "@/hooks/useCurrency";
+import { useCurrency, CURRENCIES, type CurrencyCode } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -96,6 +100,7 @@ export function BulkShipmentImport({ items, projects, onImportComplete }: BulkSh
   const [importing, setImporting] = useState(false);
   const [step, setStep] = useState<"upload" | "review" | "receipts">("upload");
   const [batchReceipts, setBatchReceipts] = useState<File[]>([]);
+  const [priceCurrency, setPriceCurrency] = useState<CurrencyCode>("USD");
 
   const VALID_PROC_TYPES = ["local", "imported"];
   const VALID_CATEGORIES = ["consumable", "tool", "pcb_dc", "pcb_ac", "other"];
@@ -120,7 +125,7 @@ export function BulkShipmentImport({ items, projects, onImportComplete }: BulkSh
     URL.revokeObjectURL(url);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -234,9 +239,12 @@ export function BulkShipmentImport({ items, projects, onImportComplete }: BulkSh
     if (!user || validRows.length === 0) return;
     setImporting(true);
 
+    const currencyRate = CURRENCIES[priceCurrency].rate; // rate = units per 1 USD
     const payloads = validRows.map(r => {
       const qty = parseInt(r.quantity, 10);
-      const price = parseFloat(r.unit_price) || 0;
+      const rawPrice = parseFloat(r.unit_price) || 0;
+      // Convert from the selected currency to USD for storage
+      const price = priceCurrency === "USD" ? rawPrice : rawPrice / currencyRate;
       return {
         item_id: r.item_id!, quantity: qty, unit_price: price, total_cost: qty * price,
         supplier: r.supplier, origin_country: r.origin_country || "",
@@ -293,7 +301,7 @@ export function BulkShipmentImport({ items, projects, onImportComplete }: BulkSh
 
   return (
     <>
-      <Button size="sm" variant="outline" onClick={() => { setStep("upload"); setParsedRows([]); setBatchReceipts([]); setOpen(true); }}>
+      <Button size="sm" variant="outline" onClick={() => { setStep("upload"); setParsedRows([]); setBatchReceipts([]); setPriceCurrency("USD"); setOpen(true); }}>
         <FileSpreadsheet className="mr-1 h-4 w-4" /> Bulk Import
       </Button>
 
@@ -310,6 +318,31 @@ export function BulkShipmentImport({ items, projects, onImportComplete }: BulkSh
 
           {step === "upload" && (
             <div className="space-y-4 py-4">
+              {/* Currency of prices in the file */}
+              <div className="rounded-lg border bg-muted/40 p-4 space-y-2">
+                <Label className="text-sm font-medium">Currency of prices in your file</Label>
+                <p className="text-xs text-muted-foreground">
+                  Prices will be converted to USD for storage. Select the currency you used in the spreadsheet.
+                </p>
+                <Select value={priceCurrency} onValueChange={(v) => setPriceCurrency(v as CurrencyCode)}>
+                  <SelectTrigger className="w-[220px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(CURRENCIES).map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.symbol} {c.code} — {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {priceCurrency !== "USD" && (
+                  <p className="text-xs text-primary">
+                    1 USD = {CURRENCIES[priceCurrency].rate.toLocaleString()} {priceCurrency} — prices will be divided by {CURRENCIES[priceCurrency].rate.toLocaleString()} on import.
+                  </p>
+                )}
+              </div>
+
               <div className="rounded-lg border-2 border-dashed border-border p-6 text-center space-y-3">
                 <FileSpreadsheet className="mx-auto h-10 w-10 text-muted-foreground" />
                 <div>
@@ -383,7 +416,16 @@ export function BulkShipmentImport({ items, projects, onImportComplete }: BulkSh
                         <TableCell className="text-sm">{row.item_name || "—"}</TableCell>
                         <TableCell className="text-right text-sm">{row.quantity}</TableCell>
                         <TableCell className="text-right text-sm">
-                          {row.unit_price ? formatAmount(Number(row.unit_price)) : "—"}
+                          {row.unit_price ? (
+                            <span>
+                              <span className="text-muted-foreground">{CURRENCIES[priceCurrency].symbol} {Number(row.unit_price).toLocaleString()}</span>
+                              {priceCurrency !== "USD" && (
+                                <span className="ml-1 text-xs text-primary">
+                                  = {formatAmount(Number(row.unit_price) / CURRENCIES[priceCurrency].rate)}
+                                </span>
+                              )}
+                            </span>
+                          ) : "—"}
                         </TableCell>
                         <TableCell className="text-sm">{row.supplier || "—"}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{row.payment_reference || "—"}</TableCell>
