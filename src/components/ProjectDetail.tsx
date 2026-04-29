@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import {
   ArrowLeft, Edit, Rocket, Ship, Package, DollarSign, Wrench, ShoppingCart,
-  Plus, MapPin, Camera, Loader2,
+  Plus, MapPin, Camera, Loader2, TrendingUp, TrendingDown, Scale,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
@@ -144,6 +144,10 @@ export function ProjectDetail({ project, canManage, onBack, onEdit }: ProjectDet
   const pending = deployments.filter((d) => d.status === "scheduled" || d.status === "in_transit").reduce((s, d) => s + d.quantity, 0);
   const progress = project.target_quantity > 0 ? Math.min(100, Math.round((totalDeployed / project.target_quantity) * 100)) : 0;
   const totalShipmentCost = shipments.reduce((s, sh) => s + (Number(sh.total_cost) || 0), 0);
+  const totalRepairCost = repairs.reduce((s: number, r: any) => s + (Number(r.total_cost) || 0), 0);
+  const totalExpenditure = totalShipmentCost + totalRepairCost;
+  const totalIncome = Number(project.total_income) || 0;
+  const netBalance = totalIncome - totalExpenditure;
   const totalShipped = shipments.reduce((s, sh) => s + sh.quantity, 0);
 
   // Materials breakdown
@@ -349,8 +353,8 @@ export function ProjectDetail({ project, canManage, onBack, onEdit }: ProjectDet
         <p className="text-sm text-muted-foreground">{project.description}</p>
       )}
 
-      {/* Summary cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {/* Deployment summary cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Deployed</CardTitle>
@@ -373,18 +377,6 @@ export function ProjectDetail({ project, canManage, onBack, onEdit }: ProjectDet
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Cost</CardTitle>
-            <DollarSign className="h-4 w-4 text-status-warning" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{formatAmount(totalShipmentCost)}</div>
-            <p className="text-xs text-muted-foreground">
-              {totalShipped > 0 ? `${formatAmount(totalShipmentCost / totalShipped)}/unit avg` : "—"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Verified</CardTitle>
             <Package className="h-4 w-4 text-primary" />
           </CardHeader>
@@ -401,6 +393,57 @@ export function ProjectDetail({ project, canManage, onBack, onEdit }: ProjectDet
           <CardContent>
             <div className="text-3xl font-bold">{activeRepairs}</div>
             <p className="text-xs text-muted-foreground">{repairs.length} total</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Financial summary */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card className="border-red-200 dark:border-red-900/40">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenditure</CardTitle>
+            <TrendingDown className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{formatAmount(totalExpenditure)}</div>
+            <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+              <div className="flex justify-between">
+                <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> Procurement</span>
+                <span>{formatAmount(totalShipmentCost)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="flex items-center gap-1"><Wrench className="h-3 w-3" /> Repairs</span>
+                <span>{formatAmount(totalRepairCost)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-green-200 dark:border-green-900/40">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Income</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{formatAmount(totalIncome)}</div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {totalIncome === 0 ? "Set income via Edit Project" : `${totalShipped > 0 ? formatAmount(totalIncome / totalShipped) + "/unit" : "—"}`}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className={netBalance >= 0 ? "border-blue-200 dark:border-blue-900/40" : "border-amber-200 dark:border-amber-900/40"}>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Net Balance</CardTitle>
+            <Scale className={`h-4 w-4 ${netBalance >= 0 ? "text-blue-500" : "text-amber-500"}`} />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${netBalance >= 0 ? "text-blue-600 dark:text-blue-400" : "text-amber-600 dark:text-amber-400"}`}>
+              {netBalance >= 0 ? "+" : ""}{formatAmount(netBalance)}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {netBalance >= 0 ? "Surplus" : "Deficit"} · Income − Expenditure
+            </p>
           </CardContent>
         </Card>
       </div>

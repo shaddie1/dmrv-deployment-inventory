@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type Dispatch, type SetStateAction } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +49,8 @@ export default function ProjectsPage() {
     country: "",
     region: "",
     target_quantity: "",
+    total_income: "",
+    budget: "",
   });
 
   const fetchData = useCallback(async () => {
@@ -99,7 +101,7 @@ export default function ProjectsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", description: "", country: "", region: "", target_quantity: "" });
+    setForm({ name: "", description: "", country: "", region: "", target_quantity: "", total_income: "", budget: "" });
     setDialogOpen(true);
   };
 
@@ -111,6 +113,8 @@ export default function ProjectsPage() {
       country: project.country,
       region: project.region || "",
       target_quantity: String(project.target_quantity),
+      total_income: project.total_income != null ? String(project.total_income) : "",
+      budget: project.budget != null ? String(project.budget) : "",
     });
     setDialogOpen(true);
   };
@@ -125,6 +129,8 @@ export default function ProjectsPage() {
       country: form.country.trim(),
       region: form.region.trim() || null,
       target_quantity: parseInt(form.target_quantity, 10) || 0,
+      total_income: form.total_income ? parseFloat(form.total_income) : null,
+      budget: form.budget ? parseFloat(form.budget) : null,
     };
 
     if (editing) {
@@ -314,8 +320,8 @@ function ProjectFormDialog({
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  form: { name: string; description: string; country: string; region: string; target_quantity: string };
-  setForm: React.Dispatch<React.SetStateAction<typeof form>>;
+  form: { name: string; description: string; country: string; region: string; target_quantity: string; total_income: string; budget: string };
+  setForm: Dispatch<SetStateAction<typeof form>>;
   editing: boolean;
   saving: boolean;
   onSave: () => void;
@@ -374,6 +380,30 @@ function ProjectFormDialog({
               onChange={(e) => setForm((f) => ({ ...f, target_quantity: e.target.value }))}
               placeholder="e.g. 5000"
             />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Total Income (USD)</Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={form.total_income}
+                onChange={(e) => setForm((f) => ({ ...f, total_income: e.target.value }))}
+                placeholder="e.g. 50000.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Budget (USD)</Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={form.budget}
+                onChange={(e) => setForm((f) => ({ ...f, budget: e.target.value }))}
+                placeholder="e.g. 75000.00"
+              />
+            </div>
           </div>
         </div>
         <DialogFooter>

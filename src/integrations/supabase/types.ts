@@ -380,6 +380,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          budget: number | null
           country: string
           created_at: string
           description: string | null
@@ -388,9 +389,11 @@ export type Database = {
           region: string | null
           responsible_officer_id: string | null
           target_quantity: number
+          total_income: number | null
           updated_at: string
         }
         Insert: {
+          budget?: number | null
           country?: string
           created_at?: string
           description?: string | null
@@ -399,9 +402,11 @@ export type Database = {
           region?: string | null
           responsible_officer_id?: string | null
           target_quantity?: number
+          total_income?: number | null
           updated_at?: string
         }
         Update: {
+          budget?: number | null
           country?: string
           created_at?: string
           description?: string | null
@@ -410,6 +415,7 @@ export type Database = {
           region?: string | null
           responsible_officer_id?: string | null
           target_quantity?: number
+          total_income?: number | null
           updated_at?: string
         }
         Relationships: []
