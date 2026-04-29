@@ -82,10 +82,9 @@ function getCategoryLabel(value: string) {
 type TabView = "all" | "main" | "parts";
 
 export default function ItemsPage() {
-  const { hasRole, user } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const { formatAmount } = useCurrency();
-  const canManage = hasRole("admin") || hasRole("warehouse_manager");
 
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -238,7 +237,7 @@ export default function ItemsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Items Catalog</h1>
           <p className="text-muted-foreground">Manage item types, prices, and replacement parts</p>
         </div>
-        {canManage && (
+        {true && (
           <Button size="sm" onClick={openCreate}>
             <Plus className="mr-1 h-4 w-4" /> New Item
           </Button>
@@ -316,7 +315,7 @@ export default function ItemsPage() {
                     {tab === "parts" && <TableHead>Part Of</TableHead>}
                     <TableHead>Low Stock</TableHead>
                     <TableHead className="max-w-[160px]">Description</TableHead>
-                    {canManage && <TableHead className="text-right">Actions</TableHead>}
+                    {true && <TableHead className="text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -367,7 +366,7 @@ export default function ItemsPage() {
                         <TableCell className="max-w-[160px] truncate text-sm text-muted-foreground">
                           {item.description || "—"}
                         </TableCell>
-                        {canManage && (
+                        {true && (
                           <TableCell className="text-right">
                             <Button size="icon" variant="ghost" onClick={() => openEdit(item)}>
                               <Edit className="h-4 w-4" />
