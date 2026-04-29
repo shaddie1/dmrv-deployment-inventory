@@ -44,34 +44,36 @@ export function BulkPriceCorrection({ onCorrectionComplete }: BulkPriceCorrectio
   const [applying, setApplying] = useState(false);
   const [shipments, setShipments] = useState<ShipmentToFix[]>([]);
   const [fetched, setFetched] = useState(false);
+  const [usedFallback, setUsedFallback] = useState(false);
 
   const rate = CURRENCIES[sourceCurrency].rate;
 
   const fetchBulkImportedShipments = async () => {
     setLoading(true);
     setFetched(false);
+    setUsedFallback(false);
 
-    // Find all shipment IDs created via bulk import from audit_log
+    // Try audit_log first to find bulk-imported IDs
     const { data: auditRows } = await supabase
       .from("audit_log")
       .select("entity_id")
       .eq("action", "bulk_import")
       .eq("entity_type", "shipment");
 
-    if (!auditRows || auditRows.length === 0) {
-      setShipments([]);
-      setFetched(true);
-      setLoading(false);
-      return;
-    }
-
-    const ids = auditRows.map((r) => r.entity_id);
-
-    const { data: ships } = await supabase
+    let query = supabase
       .from("shipments")
       .select("id, quantity, unit_price, total_cost, supplier, items(name)")
-      .in("id", ids)
       .order("created_at", { ascending: false });
+
+    if (auditRows && auditRows.length > 0) {
+      const ids = auditRows.map((r) => r.entity_id);
+      query = query.in("id", ids);
+    } else {
+      // No audit trail — fall back to all shipments
+      setUsedFallback(true);
+    }
+
+    const { data: ships } = await query;
 
     const rows: ShipmentToFix[] = (ships || []).map((s: any) => ({
       id: s.id,
@@ -221,9 +223,19 @@ export function BulkPriceCorrection({ onCorrectionComplete }: BulkPriceCorrectio
             {fetched && shipments.length === 0 && (
               <div className="rounded-lg border p-8 text-center">
                 <CheckCircle2 className="mx-auto h-8 w-8 text-green-500 mb-2" />
-                <p className="text-sm font-medium">No bulk-imported shipments found</p>
+                <p className="text-sm font-medium">No shipments found</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  All shipments appear to have been created manually.
+                  No shipments exist in the system yet.
+                </p>
+              </div>
+            )}
+
+            {fetched && usedFallback && shipments.length > 0 && (
+              <div className="rounded-lg border border-orange-300 bg-orange-50 dark:bg-orange-900/10 dark:border-orange-700 p-3 flex gap-2">
+                <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-orange-800 dark:text-orange-300">
+                  No bulk-import audit trail was found — showing <strong>all {shipments.length} shipments</strong>.
+                  Only proceed if all of them have prices stored in {sourceCurrency} that need converting.
                 </p>
               </div>
             )}
