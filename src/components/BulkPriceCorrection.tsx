@@ -111,17 +111,26 @@ export function BulkPriceCorrection({ onCorrectionComplete }: BulkPriceCorrectio
     setApplying(true);
 
     const errors: string[] = [];
+    const blocked: string[] = [];
+    let updated = 0;
+
     for (const s of shipments) {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("shipments")
         .update({
           unit_price: Math.round(s.corrected_unit * 100) / 100,
           total_cost: Math.round(s.corrected_total * 100) / 100,
         })
-        .eq("id", s.id);
+        .eq("id", s.id)
+        .select("id");
 
-      if (error) errors.push(s.id);
-      else {
+      if (error) {
+        errors.push(s.id);
+      } else if (!data || data.length === 0) {
+        // Supabase returned no error but also updated 0 rows — RLS blocked it
+        blocked.push(s.id);
+      } else {
+        updated++;
         logAudit({
           userId: user.id,
           action: "price_correction",
@@ -135,7 +144,13 @@ export function BulkPriceCorrection({ onCorrectionComplete }: BulkPriceCorrectio
 
     setApplying(false);
 
-    if (errors.length > 0) {
+    if (blocked.length > 0) {
+      toast({
+        title: "Permission denied",
+        description: `${blocked.length} shipment(s) could not be updated — your account may not have write access. Ask an admin to run this correction.`,
+        variant: "destructive",
+      });
+    } else if (errors.length > 0) {
       toast({
         title: "Partial failure",
         description: `${errors.length} shipment(s) failed to update.`,
@@ -144,7 +159,7 @@ export function BulkPriceCorrection({ onCorrectionComplete }: BulkPriceCorrectio
     } else {
       toast({
         title: "Prices corrected",
-        description: `${shipments.length} shipment(s) updated from ${sourceCurrency} → USD.`,
+        description: `${updated} shipment(s) updated from ${sourceCurrency} → USD.`,
       });
       setOpen(false);
       setShipments([]);
