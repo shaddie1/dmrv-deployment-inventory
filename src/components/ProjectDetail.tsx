@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useCurrency } from "@/hooks/useCurrency";
 import { logAudit } from "@/lib/auditLog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,7 +65,12 @@ const REPAIR_STATUS_COLORS: Record<string, string> = {
 export function ProjectDetail({ project, canManage, onBack, onEdit }: ProjectDetailProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { formatAmount } = useCurrency();
+  // All stored monetary values in this DB are KES (legacy import). Display
+  // them directly with a KSh label instead of converting through USD.
+  const formatAmount = (value: number) => {
+    const sign = value < 0 ? "-" : "";
+    return `${sign}KSh ${Math.abs(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  };
 
   const [deployments, setDeployments] = useState<any[]>([]);
   const [shipments, setShipments] = useState<any[]>([]);
