@@ -570,7 +570,7 @@ export default function ShipmentsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Unit Price ($)</Label>
+                <Label>Unit Price (KSh)</Label>
                 <Input
                   type="number"
                   min={0}

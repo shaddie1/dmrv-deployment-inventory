@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useCurrency } from "@/hooks/useCurrency";
 import { logAudit } from "@/lib/auditLog";
 import { COMPANY_BATCHES, COMPANY_ORIGINS, FAULT_CATEGORIES } from "@/lib/repair-constants";
 import { Button } from "@/components/ui/button";
@@ -103,7 +102,9 @@ const emptyForm = () => ({
 
 export default function PcbRepairsPage() {
   const { user, hasRole } = useAuth();
-  const { formatAmount } = useCurrency();
+  // Stored monetary values are KES (legacy data); display directly with a KSh label.
+  const formatAmount = (value: number) =>
+    `KSh ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
   const [repairs, setRepairs] = useState<RepairRow[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);

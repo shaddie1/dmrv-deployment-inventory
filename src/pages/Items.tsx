@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, type ComponentType } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useCurrency } from "@/hooks/useCurrency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,7 +83,9 @@ type TabView = "all" | "main" | "parts";
 export default function ItemsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { formatAmount } = useCurrency();
+  // Stored monetary values are KES (legacy data); display directly with a KSh label.
+  const formatAmount = (value: number) =>
+    `KSh ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -472,7 +473,7 @@ export default function ItemsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Unit Price (USD)</Label>
+                <Label>Unit Price (KSh)</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
                   <Input

@@ -383,7 +383,7 @@ function ProjectFormDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Total Income (USD)</Label>
+              <Label>Total Income (KSh)</Label>
               <Input
                 type="number"
                 min={0}
@@ -394,7 +394,7 @@ function ProjectFormDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label>Budget (USD)</Label>
+              <Label>Budget (KSh)</Label>
               <Input
                 type="number"
                 min={0}
