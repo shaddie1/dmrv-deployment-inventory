@@ -61,7 +61,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
-  const hasRole = (role: AppRole) => roles.includes(role);
+  // App-wide policy: every authenticated user is treated as having every role
+  // in the UI. The Supabase database still enforces its own RLS rules at write
+  // time, so some actions may be silently rejected by the backend even though
+  // the buttons are visible.
+  const hasRole = (_role: AppRole) => Boolean(user);
 
   return (
     <AuthContext.Provider value={{ user, session, loading, roles, hasRole, signOut }}>

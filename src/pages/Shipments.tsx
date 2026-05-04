@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useCurrency } from "@/hooks/useCurrency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +27,6 @@ import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { BulkShipmentImport } from "@/components/BulkShipmentImport";
-import { BulkPriceCorrection } from "@/components/BulkPriceCorrection";
 
 type Shipment = Tables<"shipments"> & {
   items: { name: string; category: string } | null;
@@ -84,7 +82,6 @@ interface ProjectOption {
 
 export default function ShipmentsPage() {
   const { user, hasRole } = useAuth();
-  const { formatAmount } = useCurrency();
   const { toast } = useToast();
   const canManage = hasRole("admin") || hasRole("warehouse_manager");
   const canCreate = canManage || hasRole("field_officer");
@@ -95,6 +92,12 @@ export default function ShipmentsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // Shipment prices in this DB are stored as raw KES values (a legacy import
+  // mistake we cannot correct without admin access). Display them directly
+  // with a KSh label instead of running through the USD-based formatAmount.
+  const formatPrice = (value: number) =>
+    `KSh ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -147,7 +150,6 @@ export default function ShipmentsPage() {
     setShipments((shipmentData || []) as unknown as Shipment[]);
     setItems(itemData || []);
     setProjects(projectData || []);
-    // Count receipts per shipment
     const counts: Record<string, number> = {};
     (evidenceCounts || []).forEach((e) => {
       counts[e.linked_entity_id] = (counts[e.linked_entity_id] || 0) + 1;
@@ -370,7 +372,6 @@ export default function ShipmentsPage() {
         </div>
         {canCreate && (
           <div className="flex items-center gap-2">
-            <BulkPriceCorrection onCorrectionComplete={fetchData} />
             <BulkShipmentImport items={items} projects={projects} onImportComplete={fetchData} />
             <Button size="sm" onClick={() => { resetForm(); setCreateOpen(true); }}>
               <Plus className="mr-1 h-4 w-4" /> New Shipment
@@ -456,8 +457,8 @@ export default function ShipmentsPage() {
                          <TableCell className="font-medium">{s.items?.name || "—"}</TableCell>
                          <TableCell className="capitalize">{PROCUREMENT_CATEGORIES.find(c => c.value === (s as any).procurement_category)?.label || "—"}</TableCell>
                          <TableCell className="text-right">{s.quantity}</TableCell>
-                         <TableCell className="text-right">{(s as any).unit_price ? formatAmount(Number((s as any).unit_price)) : "—"}</TableCell>
-                         <TableCell className="text-right font-medium">{(s as any).total_cost ? formatAmount(Number((s as any).total_cost)) : "—"}</TableCell>
+                         <TableCell className="text-right">{(s as any).unit_price ? formatPrice(Number((s as any).unit_price)) : "—"}</TableCell>
+                         <TableCell className="text-right font-medium">{(s as any).total_cost ? formatPrice(Number((s as any).total_cost)) : "—"}</TableCell>
                          <TableCell>{s.supplier || "—"}</TableCell>
                          <TableCell className="capitalize">{(s as any).procurement_type || "—"}</TableCell>
                          <TableCell>{(s as any).projects?.name || "—"}</TableCell>
